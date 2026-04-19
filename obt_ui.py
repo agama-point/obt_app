@@ -9,6 +9,11 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt, pyqtSlot, QMetaObject
 from PyQt6.QtGui import QFont
+# Přidán import pro práci s SVG logem
+from PyQt6.QtSvgWidgets import QSvgWidget
+
+
+
 
 
 class MainWindow(QWidget):
@@ -31,12 +36,13 @@ class MainWindow(QWidget):
 
         self._utxo_checkboxes = []  # Store checkboxes for UTXOs
         self._current_font_size = 11  # Default font size
+        self.FixedWidth = 90
 
         self._build_ui()
         self.apply_dark_theme()
 
     # ------------------------------------------------------------------ #
-    #  Layout                                                              #
+    #  Layout                                                            #
     # ------------------------------------------------------------------ #
     def _build_ui(self):
         root = QVBoxLayout(self)
@@ -66,9 +72,6 @@ class MainWindow(QWidget):
         clear_btn.clicked.connect(self.log_box.clear)
         clear_btn.setFixedWidth(100)
 
-        note_label = QLabel("Alice: 7214 | Bob: 83ca")
-        note_label.setStyleSheet("color: #888; font-style: italic;")
-
         # Font size selector
         font_size_label = QLabel("Font size:")
         
@@ -92,7 +95,6 @@ class MainWindow(QWidget):
         self.theme_toggle.stateChanged.connect(self._toggle_theme)
 
         bottom.addWidget(clear_btn)
-        bottom.addWidget(note_label)
         bottom.addStretch()
         bottom.addWidget(font_size_label)
         bottom.addWidget(self.font_radio_1)
@@ -103,7 +105,7 @@ class MainWindow(QWidget):
         root.addLayout(bottom)
 
     # ------------------------------------------------------------------ #
-    #  Left panel                                                          #
+    #  Left panel                                                        #
     # ------------------------------------------------------------------ #
     def _build_left_panel(self) -> QWidget:
         panel = QWidget()
@@ -163,7 +165,7 @@ class MainWindow(QWidget):
         # Device address
         addr_row = QHBoxLayout()
         addr_lbl = QLabel("Address:")
-        addr_lbl.setFixedWidth(60)
+        addr_lbl.setFixedWidth(self.FixedWidth)
         self.addr_label = QLabel("—")
         self.addr_label.setFont(QFont("Monospace"))
         self.addr_label.setWordWrap(True)
@@ -189,7 +191,7 @@ class MainWindow(QWidget):
         # Balance info
         bal_row = QHBoxLayout()
         bal_lbl = QLabel("Balance:")
-        bal_lbl.setFixedWidth(60)
+        bal_lbl.setFixedWidth(self.FixedWidth)
         self.balance_label = QLabel("—")
         self.balance_label.setFont(QFont("Monospace", -1, QFont.Weight.Bold))
         bal_row.addWidget(bal_lbl)
@@ -211,7 +213,8 @@ class MainWindow(QWidget):
         # Scrollable area for UTXOs
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
-        scroll.setMaximumHeight(150)
+        # scroll.setMaximumHeight(200)
+        scroll.setFixedHeight(180)
         scroll.setStyleSheet("QScrollArea { border: 1px solid #555; border-radius: 4px; }")
         
         self.utxo_container = QWidget()
@@ -234,7 +237,7 @@ class MainWindow(QWidget):
         # Value to send
         value_row = QHBoxLayout()
         value_lbl = QLabel("Value:")
-        value_lbl.setFixedWidth(60)
+        value_lbl.setFixedWidth(self.FixedWidth)
         self.value_input = QLineEdit()
         self.value_input.setText("1")  # Default: 1 unit
         self.value_input.setPlaceholderText("Amount to send…")
@@ -247,7 +250,7 @@ class MainWindow(QWidget):
         # To address
         to_row = QHBoxLayout()
         to_lbl = QLabel("To:")
-        to_lbl.setFixedWidth(60)
+        to_lbl.setFixedWidth(self.FixedWidth)
         self.to_input = QLineEdit()
         self.to_input.setText("7214")  # Pre-fill with default target
         self.to_input.setPlaceholderText("Recipient address…")
@@ -290,13 +293,19 @@ class MainWindow(QWidget):
         return grp
 
     # ------------------------------------------------------------------ #
-    #  Right panel – log                                                   #
+    #  Right panel – log                                                 #
     # ------------------------------------------------------------------ #
     def _build_right_panel(self) -> QWidget:
         panel = QWidget()
         layout = QVBoxLayout(panel)
         layout.setContentsMargins(4, 0, 0, 0)
         layout.setSpacing(4)
+
+        # 1) Přidání loga nahoru vpravo nad log
+        self.logo_widget = QSvgWidget("obt_logo.svg")
+        self.logo_widget.setFixedWidth(500)
+        self.logo_widget.setFixedHeight(85)  # Výška přizpůsobená pro zachování poměru
+        layout.addWidget(self.logo_widget, alignment=Qt.AlignmentFlag.AlignLeft)
 
         log_label = QLabel("Verbose Log")
         log_label.setObjectName("smallLabel")
@@ -313,7 +322,7 @@ class MainWindow(QWidget):
         return panel
 
     # ------------------------------------------------------------------ #
-    #  Slots / handlers                                                    #
+    #  Slots / handlers                                                  #
     # ------------------------------------------------------------------ #
     @pyqtSlot(str)
     def _append_log(self, html_msg: str):
@@ -421,9 +430,9 @@ class MainWindow(QWidget):
         """Set status label"""
         colors = {
             "Connected":    "#4caf50",
-            "Scanning …":   "#ffb300",
+            "Scanning …":    "#ffb300",
             "Connecting …": "#ffb300",
-            "Idle":         "#9e9e9e",
+            "Idle":          "#9e9e9e",
         }
         color = colors.get(text, "#f44336")
         self.status_label.setText(f"● {text}")
@@ -505,7 +514,7 @@ class MainWindow(QWidget):
         )
 
     # ------------------------------------------------------------------ #
-    #  Themes                                                              #
+    #  Themes                                                            #
     # ------------------------------------------------------------------ #
     def _change_font_size(self, size: int):
         """Change font size for entire application"""
@@ -543,7 +552,7 @@ class MainWindow(QWidget):
                 padding-top: 4px;
                 font-weight: bold;
                 color: #aaa;
-                font-size: {base_size}pt;
+                font-size: {small_size}pt;
             }}
             QGroupBox::title {{ subcontrol-origin: margin; left: 8px; padding: 0 4px; }}
             QTextBrowser, QLineEdit {{
@@ -617,7 +626,7 @@ class MainWindow(QWidget):
                 padding-top: 4px;
                 font-weight: bold;
                 color: #555;
-                font-size: {base_size}pt;
+                font-size: {small_size}pt;
             }}
             QGroupBox::title {{ subcontrol-origin: margin; left: 8px; padding: 0 4px; }}
             QTextBrowser, QLineEdit {{

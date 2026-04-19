@@ -100,8 +100,11 @@ class WorkerThread(QObject):
             self.status_signal.emit("Connected")
             self.connected_signal.emit(True)
             
+            self._request_ver()
+
             # Automatically request public key
             self._request_address()
+            self._log("-------------------", color="#888")
             
         except Exception as e:
             self._log(f"❌ Connection error: {e}", color="#f44336")
@@ -121,6 +124,65 @@ class WorkerThread(QObject):
         self._device_address = ""
         self.status_signal.emit("Idle")
         self.connected_signal.emit(False)
+
+
+    def _request_ver(self):
+        """Request version from device (JSON version)"""
+        if not self._serial or not self._serial.is_open:
+            return
+        
+        try:
+            # Příprava a odeslání příkazu
+            command = {"get": "ver"}
+            json_command = json.dumps(command) + "\n"
+            
+            self._log("📤 Requesting version...", color="#2196f3")
+            if self._debug_mode:
+                self._log(f"  TX: {json_command.strip()}", color="#666")
+            
+            self._serial.write(json_command.encode('utf-8'))
+
+            # Čtení odpovědi
+            found_ver = False
+            start_time = time.time()
+            
+            while (time.time() - start_time) < 5:
+                line = self._serial.readline().decode('utf-8', errors='ignore').strip()
+                if not line:
+                    continue
+
+                if self._debug_mode:
+                    self._log(f"  RX: {line}", color="#666")
+                
+                # Ignorování debug výpisů (pokud nezačínají { , rovnou je přeskočíme)
+                if line.startswith("::") or line == "READY" or not line.startswith("{"):
+                    continue
+                
+                try:
+                    # Parsování JSONu
+                    data = json.loads(line)
+                    
+                    if "res_ver" in data:
+                        ver_val = data["res_ver"]
+                        self._device_version = ver_val  # Uložíme verzi
+                        self._log(f"ℹ️ Version: <b>{ver_val}</b>", color="#4caf50")
+                        
+                        # Pokud máš dedikovaný signál pro verzi, pošli ho zde
+                        # self.version_received_signal.emit(ver_val)
+                        
+                        found_ver = True
+                        break
+                        
+                except json.JSONDecodeError:
+                    # Pokud řádek vypadal jako JSON (začínal {), ale nešel parsovat
+                    continue
+            
+            if not found_ver:
+                self._log("⚠️ Version response not found in stream", color="#ff9800")
+                    
+        except Exception as e:
+            self._log(f"❌ Error reading version: {e}", color="#f44336")
+
     
     def _request_address(self):
         """Request public key from device"""
@@ -251,7 +313,7 @@ class WorkerThread(QObject):
         # Build transaction string: FROM|TXID|TO|VALUE
         tx_string = f"{from_address}|{txid}|{to_address}|{send_value}"
         
-        self._log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━", color="#888")
+        self._log("-------------------", color="#888")
         self._log("📝 <b>Building Transaction</b>", color="#2196f3")
         self._log(f"  From:       <b>{from_address}</b>", color="#888")
         self._log(f"  TXID:       <b>{txid}</b>", color="#888")
@@ -317,7 +379,7 @@ class WorkerThread(QObject):
             if not found_signature:
                 self._log("⚠️ Device did not return signature in time", color="#f44336")
             
-            self._log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━", color="#888")
+            self._log("-------------------", color="#888")
                 
         except Exception as e:
             self._log(f"❌ Error during signing: {e}", color="#f44336")
@@ -347,7 +409,7 @@ class WorkerThread(QObject):
         
         url = "https://www.agamapoint.com/bbr/index.php?route=send_transaction"
         
-        self._log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━", color="#888")
+        self._log("-------------------", color="#888")
         self._log("📡 <b>Broadcasting Transaction to Blockchain</b>", color="#2196f3")
         self._log(f"  From:       <b>{self._tx_from}</b>", color="#888")
         self._log(f"  UTXO TXID:  <b>{self._tx_utxo_txid}</b>", color="#888")
@@ -408,7 +470,7 @@ class WorkerThread(QObject):
                     "message": message
                 })
             
-            self._log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━", color="#888")
+            self._log("-------------------", color="#888")
             
         except requests.exceptions.Timeout:
             self._log("❌ <b>Timeout</b> - API did not respond in time (15s)", color="#f44336")
@@ -416,7 +478,7 @@ class WorkerThread(QObject):
                 "status": "error", 
                 "message": "API timeout"
             })
-            self._log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━", color="#888")
+            self._log("-------------------", color="#888")
             
         except requests.exceptions.RequestException as e:
             self._log(f"❌ <b>Network error:</b> {e}", color="#f44336")
@@ -424,7 +486,7 @@ class WorkerThread(QObject):
                 "status": "error", 
                 "message": f"Network error: {e}"
             })
-            self._log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━", color="#888")
+            self._log("-------------------", color="#888")
             
         except json.JSONDecodeError as e:
             self._log(f"❌ <b>Invalid JSON response</b> from API: {e}", color="#f44336")
@@ -432,7 +494,7 @@ class WorkerThread(QObject):
                 "status": "error", 
                 "message": "Invalid API response (not JSON)"
             })
-            self._log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━", color="#888")
+            self._log("-------------------", color="#888")
     
     # ------------------------------------------------------------------ #
     #  Utility                                                             #
