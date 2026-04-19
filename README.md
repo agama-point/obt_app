@@ -488,4 +488,14 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ---
 
-**Made with ❤️ for secure blockchain transactions**
+### Made with ❤️ for educational (not secure) blockchain transactions.
+
+#### Why is this project (un)safe?
+While modern cryptography relies on keys that are practically impossible to guess even for supercomputers, **One Byte Toy** intentionally operates on an extremely reduced scale.
+
+* **The 8-bit Limit:** The private key used here (based on the $F_{251}$ field) offers only 251 possible combinations. In the real Bitcoin world, the **secp256k1** standard is used, where the number of combinations is an astronomical $2^{256}$.
+* **Education over Security:** This drastic simplification allows you to observe the mathematical operations "under the hood" in real-time, without the need to process gargantuan numbers.
+* **Instant Brute-Force:** Because the keyspace is so small, the system can be cracked in milliseconds. This makes it a perfect tool for demonstrating why key length is the most critical factor in cyber security—and why size definitely matters.
+
+> [!CAUTION]
+> **Note:** This is a sandbox for learning. Please never use real-world seeds or private keys within this environment!
