@@ -70,6 +70,9 @@ pip install -r requirements.txt
 python obt_app.py
 ```
 
+
+![connection](/img/obt1conn_t8.png)
+
 ---
 
 ## 📖 Usage Guide
@@ -108,6 +111,9 @@ python obt_app.py
    - Signed transaction is sent to blockchain API
    - New transaction ID (TXID) is returned
    - Balance automatically refreshed
+
+
+![broadcast](/img/obt3broadcast.png)
 
 ---
 
@@ -249,6 +255,9 @@ POST https://www.agamapoint.com/bbr/index.php?route=send_transaction
   "txid": "new_transaction_id"
 }
 ```
+
+
+![verify](/img/obt6verify.png)
 
 ---
 
