@@ -13,16 +13,14 @@ from PyQt6.QtGui import QFont
 from PyQt6.QtSvgWidgets import QSvgWidget
 
 
-
-
-
 class MainWindow(QWidget):
     def __init__(self, worker):
         super().__init__()
         self._worker = worker
         self.setWindowTitle("OBT | UART Blockchain Tool")
-        self.resize(1000, 700)
-        self.setMinimumWidth(800)
+        self.resize(900, 680)
+        self.setMinimumWidth(750)
+        self.setMaximumHeight(680)
 
         # Connect signals from worker
         self._worker.log_signal.connect(self._append_log)
@@ -37,6 +35,7 @@ class MainWindow(QWidget):
         self._utxo_checkboxes = []  # Store checkboxes for UTXOs
         self._current_font_size = 11  # Default font size
         self.FixedWidth = 90
+        self.BtnWidth = 135
 
         self._build_ui()
         self.apply_dark_theme()
@@ -72,6 +71,10 @@ class MainWindow(QWidget):
         clear_btn.clicked.connect(self.log_box.clear)
         clear_btn.setFixedWidth(100)
 
+        note_label = QLabel("Alice: 7214 | Bob: 83ca")
+        note_label.setStyleSheet("color: #888; font-style: italic;")
+
+
         # Font size selector
         font_size_label = QLabel("Font size:")
         
@@ -87,14 +90,15 @@ class MainWindow(QWidget):
         self.font_radio_1.setChecked(True)  # Default: size 1 (11pt)
         
         self.font_radio_1.toggled.connect(lambda: self._change_font_size(11))
-        self.font_radio_2.toggled.connect(lambda: self._change_font_size(15))
-        self.font_radio_3.toggled.connect(lambda: self._change_font_size(31))
+        self.font_radio_2.toggled.connect(lambda: self._change_font_size(13))
+        self.font_radio_3.toggled.connect(lambda: self._change_font_size(17))
 
         self.theme_toggle = QCheckBox("Dark mode")
         self.theme_toggle.setChecked(True)
         self.theme_toggle.stateChanged.connect(self._toggle_theme)
 
         bottom.addWidget(clear_btn)
+        bottom.addWidget(note_label)
         bottom.addStretch()
         bottom.addWidget(font_size_label)
         bottom.addWidget(self.font_radio_1)
@@ -132,6 +136,7 @@ class MainWindow(QWidget):
         row = QHBoxLayout()
         self.scan_btn = QPushButton("⟳  Scan ports")
         self.scan_btn.clicked.connect(self._worker.scan_ports)
+        self.scan_btn.setFixedWidth(self.BtnWidth)
 
         self.status_label = QLabel("● Idle")
         self.status_label.setAlignment(
@@ -162,23 +167,27 @@ class MainWindow(QWidget):
         lay = QVBoxLayout(grp)
         lay.setSpacing(6)
 
-        # Device address
-        addr_row = QHBoxLayout()
-        addr_lbl = QLabel("Address:")
-        addr_lbl.setFixedWidth(self.FixedWidth)
-        self.addr_label = QLabel("—")
-        self.addr_label.setFont(QFont("Monospace"))
-        self.addr_label.setWordWrap(True)
-        self.addr_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
-        addr_row.addWidget(addr_lbl)
-        addr_row.addWidget(self.addr_label, stretch=1)
-        lay.addLayout(addr_row)
-
-        # Connect button
+        # Connect button + Address in one row
+        conn_row = QHBoxLayout()
+        
         self.connect_btn = QPushButton("Connect")
         self.connect_btn.clicked.connect(self._toggle_connection)
         self.connect_btn.setEnabled(False)
-        lay.addWidget(self.connect_btn)
+        self.connect_btn.setFixedWidth(self.BtnWidth)  # Same width as Scan ports
+        
+        addr_lbl = QLabel("Address:")
+        addr_lbl.setFixedWidth(self.FixedWidth)
+        
+        self.addr_label = QLabel("—")
+        self.addr_label.setFont(QFont("Monospace"))
+        self.addr_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        self.addr_label.setFixedWidth(60)  # Max 6 chars
+        
+        conn_row.addWidget(self.connect_btn)
+        conn_row.addWidget(addr_lbl)
+        conn_row.addWidget(self.addr_label)
+        conn_row.addStretch()
+        lay.addLayout(conn_row)
 
         return grp
 
@@ -188,21 +197,22 @@ class MainWindow(QWidget):
         lay = QVBoxLayout(grp)
         lay.setSpacing(6)
 
-        # Balance info
+        # Get Balance button + Balance value in one row
         bal_row = QHBoxLayout()
-        bal_lbl = QLabel("Balance:")
-        bal_lbl.setFixedWidth(self.FixedWidth)
-        self.balance_label = QLabel("—")
-        self.balance_label.setFont(QFont("Monospace", -1, QFont.Weight.Bold))
-        bal_row.addWidget(bal_lbl)
-        bal_row.addWidget(self.balance_label, stretch=1)
-        lay.addLayout(bal_row)
-
-        # Get Balance button
+        
         self.get_balance_btn = QPushButton("Get Balance")
         self.get_balance_btn.clicked.connect(self._on_get_balance)
         self.get_balance_btn.setEnabled(False)
-        lay.addWidget(self.get_balance_btn)
+        self.get_balance_btn.setFixedWidth(self.BtnWidth)
+        
+        self.balance_label = QLabel("—")
+        self.balance_label.setFont(QFont("Monospace", -1, QFont.Weight.Bold))
+        self.balance_label.setFixedWidth(40)  # Max 3 chars
+        
+        bal_row.addWidget(self.get_balance_btn)
+        bal_row.addWidget(self.balance_label)
+        bal_row.addStretch()
+        lay.addLayout(bal_row)
 
         # UTXOs label
         utxo_lbl = QLabel("UTXOs (select to spend):")
@@ -234,31 +244,35 @@ class MainWindow(QWidget):
         lay = QVBoxLayout(grp)
         lay.setSpacing(6)
 
-        # Value to send
-        value_row = QHBoxLayout()
+        # Value and To address in one row
+        inputs_row = QHBoxLayout()
+        
         value_lbl = QLabel("Value:")
-        value_lbl.setFixedWidth(self.FixedWidth)
+        value_lbl.setFixedWidth(50)
+        
         self.value_input = QLineEdit()
         self.value_input.setText("1")  # Default: 1 unit
-        self.value_input.setPlaceholderText("Amount to send…")
+        self.value_input.setPlaceholderText("Value")
         self.value_input.setFont(QFont("Monospace"))
         self.value_input.setEnabled(False)
-        value_row.addWidget(value_lbl)
-        value_row.addWidget(self.value_input, stretch=1)
-        lay.addLayout(value_row)
-
-        # To address
-        to_row = QHBoxLayout()
+        self.value_input.setFixedWidth(40)  # Max 3 chars
+        
         to_lbl = QLabel("To:")
-        to_lbl.setFixedWidth(self.FixedWidth)
+        to_lbl.setFixedWidth(30)
+        
         self.to_input = QLineEdit()
         self.to_input.setText("7214")  # Pre-fill with default target
-        self.to_input.setPlaceholderText("Recipient address…")
+        self.to_input.setPlaceholderText("Address")
         self.to_input.setFont(QFont("Monospace"))
         self.to_input.setEnabled(False)
-        to_row.addWidget(to_lbl)
-        to_row.addWidget(self.to_input, stretch=1)
-        lay.addLayout(to_row)
+        self.to_input.setFixedWidth(60)  # Max 6 chars
+        
+        inputs_row.addWidget(value_lbl)
+        inputs_row.addWidget(self.value_input)
+        inputs_row.addWidget(to_lbl)
+        inputs_row.addWidget(self.to_input)
+        inputs_row.addStretch()
+        lay.addLayout(inputs_row)
 
         # Two separate buttons: Sign and Broadcast
         btn_row = QHBoxLayout()
@@ -404,7 +418,7 @@ class MainWindow(QWidget):
     def _display_balance(self, data: dict):
         """Display balance and UTXOs"""
         balance = data.get("balance", 0)
-        self.balance_label.setText(f"{balance} units")
+        self.balance_label.setText(f"{balance}")
         
         # Clear previous UTXOs
         for cb in self._utxo_checkboxes:
@@ -593,8 +607,31 @@ class MainWindow(QWidget):
                 spacing: 5px;
                 font-size: {base_size}pt;
             }}
+            QCheckBox::indicator {{
+                width: 16px;
+                height: 16px;
+                background: #e8e8e8;
+                border: 1px solid #888;
+                border-radius: 3px;
+            }}
+            QCheckBox::indicator:checked {{
+                background: #4caf50;
+                border-color: #4caf50;
+                image: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMTMgNEw2IDExTDMgOCIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIi8+PC9zdmc+);
+            }}
             QRadioButton {{
                 font-size: {base_size}pt;
+            }}
+            QRadioButton::indicator {{
+                width: 16px;
+                height: 16px;
+                background: #e8e8e8;
+                border: 1px solid #888;
+                border-radius: 8px;
+            }}
+            QRadioButton::indicator:checked {{
+                background: qradialgradient(cx:0.5, cy:0.5, radius:0.5, fx:0.5, fy:0.5, stop:0 #4caf50, stop:0.5 #4caf50, stop:0.51 #e8e8e8, stop:1 #e8e8e8);
+                border: 1px solid #4caf50;
             }}
             QLabel {{
                 font-size: {base_size}pt;
@@ -605,7 +642,7 @@ class MainWindow(QWidget):
             QSplitter::handle {{ background: #444; }}
             QScrollArea {{ background: transparent; }}
         """)
-
+ 
     def apply_light_theme(self):
         # Calculate related sizes based on font size
         base_size = self._current_font_size
@@ -658,8 +695,31 @@ class MainWindow(QWidget):
                 spacing: 5px;
                 font-size: {base_size}pt;
             }}
+            QCheckBox::indicator {{
+                width: 16px;
+                height: 16px;
+                background: white;
+                border: 1px solid #999;
+                border-radius: 3px;
+            }}
+            QCheckBox::indicator:checked {{
+                background: #4caf50;
+                border-color: #4caf50;
+                image: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMTMgNEw2IDExTDMgOCIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIi8+PC9zdmc+);
+            }}
             QRadioButton {{
                 font-size: {base_size}pt;
+            }}
+            QRadioButton::indicator {{
+                width: 16px;
+                height: 16px;
+                background: white;
+                border: 1px solid #999;
+                border-radius: 8px;
+            }}
+            QRadioButton::indicator:checked {{
+                background: qradialgradient(cx:0.5, cy:0.5, radius:0.5, fx:0.5, fy:0.5, stop:0 #4caf50, stop:0.5 #4caf50, stop:0.51 white, stop:1 white);
+                border: 1px solid #4caf50;
             }}
             QLabel {{
                 font-size: {base_size}pt;
