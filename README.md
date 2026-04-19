@@ -213,6 +213,8 @@ Hardware devices may output debug information prefixed with `::` which is logged
 
 ## 🌐 Blockchain API
 
+https://github.com/agama-point/Bit-Block-Rithm
+
 ### Endpoints
 
 #### Get Balance & UTXOs
