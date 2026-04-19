@@ -42,6 +42,9 @@ OBT (OneByte Toy) is a simple blockchain transaction tool that interfaces with h
 - **OS**: Windows, Linux, macOS
 - **Python**: 3.8 or higher
 - **Hardware**: ESP32-S3, ESP32-C3, or TROPIC01 device with UART support
+ 
+https://github.com/agama-point/Bit-Block-Rithm/tree/main/upy
+
 
 ### Python Dependencies
 ```
