@@ -33,6 +33,8 @@ class WorkerThread(QObject):
     balance_received_signal = pyqtSignal(dict) # Balance data from API
     signature_received_signal = pyqtSignal(str) # Signature from device
     transaction_broadcast_signal = pyqtSignal(dict) # Broadcast result
+    encrypt_received_signal = pyqtSignal(str)   # Encrypted hex result
+    decrypt_received_signal = pyqtSignal(str)   # Decrypted text result
     
     def __init__(self):
         super().__init__()
@@ -496,6 +498,86 @@ class WorkerThread(QObject):
             })
             self._log("-------------------", color="#888")
     
+    # ------------------------------------------------------------------ #
+    #  Crypto operations                                                   #
+    # ------------------------------------------------------------------ #
+
+    @pyqtSlot(str)
+    def encrypt_text(self, text: str):
+        """Encrypt text via ESP32 (max 30 chars)"""
+        if not self._serial or not self._serial.is_open:
+            self._log("❌ Not connected", color="#f44336")
+            self.encrypt_received_signal.emit("(not connected)")
+            return
+        try:
+            self._log(f"🔐 Encrypting: <b>{text}</b>", color="#2196f3")
+            command = json.dumps({"encr": text}) + "\n"
+            if self._debug_mode:
+                self._log(f"  TX: {command.strip()}", color="#666")
+            self._serial.write(command.encode('utf-8'))
+
+            encrypted_hex = ""
+            start_time = time.time()
+            while (time.time() - start_time) < 3:
+                line = self._serial.readline().decode('utf-8', errors='ignore').strip()
+                if not line:
+                    continue
+                if self._debug_mode:
+                    self._log(f"  RX: {line}", color="#666")
+                if line.startswith("::"):
+                    continue
+                encrypted_hex = line
+                break
+
+            if encrypted_hex:
+                self._log(f"✓ Encrypted (Hex): <b>{encrypted_hex}</b>", color="#4caf50")
+                self.encrypt_received_signal.emit(encrypted_hex)
+            else:
+                self._log("⚠️ No encryption response from device", color="#f44336")
+                self.encrypt_received_signal.emit("(no response)")
+
+        except Exception as e:
+            self._log(f"❌ Encrypt error: {e}", color="#f44336")
+            self.encrypt_received_signal.emit(f"(error: {e})")
+
+    @pyqtSlot(str)
+    def decrypt_hex(self, hex_str: str):
+        """Decrypt hex string via ESP32"""
+        if not self._serial or not self._serial.is_open:
+            self._log("❌ Not connected", color="#f44336")
+            self.decrypt_received_signal.emit("(not connected)")
+            return
+        try:
+            self._log(f"🔓 Decrypting: <b>{hex_str}</b>", color="#2196f3")
+            command = json.dumps({"decr": hex_str}) + "\n"
+            if self._debug_mode:
+                self._log(f"  TX: {command.strip()}", color="#666")
+            self._serial.write(command.encode('utf-8'))
+
+            decrypted_text = ""
+            start_time = time.time()
+            while (time.time() - start_time) < 3:
+                line = self._serial.readline().decode('utf-8', errors='ignore').strip()
+                if not line:
+                    continue
+                if self._debug_mode:
+                    self._log(f"  RX: {line}", color="#666")
+                if line.startswith("::"):
+                    continue
+                decrypted_text = line
+                break
+
+            if decrypted_text:
+                self._log(f"✓ Decrypted: <b>{decrypted_text}</b>", color="#4caf50")
+                self.decrypt_received_signal.emit(decrypted_text)
+            else:
+                self._log("⚠️ No decryption response from device", color="#f44336")
+                self.decrypt_received_signal.emit("(no response)")
+
+        except Exception as e:
+            self._log(f"❌ Decrypt error: {e}", color="#f44336")
+            self.decrypt_received_signal.emit(f"(error: {e})")
+
     # ------------------------------------------------------------------ #
     #  Utility                                                             #
     # ------------------------------------------------------------------ #

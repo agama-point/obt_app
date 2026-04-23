@@ -31,6 +31,8 @@ class MainWindow(QWidget):
         self._worker.balance_received_signal.connect(self._display_balance)
         self._worker.signature_received_signal.connect(self._on_signature_received)
         self._worker.transaction_broadcast_signal.connect(self._on_broadcast_result)
+        self._worker.encrypt_received_signal.connect(self._on_encrypt_result)
+        self._worker.decrypt_received_signal.connect(self._on_decrypt_result)
 
         self._utxo_checkboxes = []  # Store checkboxes for UTXOs
         self._current_font_size = 11  # Default font size
@@ -97,8 +99,15 @@ class MainWindow(QWidget):
         self.theme_toggle.setChecked(True)
         self.theme_toggle.stateChanged.connect(self._toggle_theme)
 
+        self.debug_checkbox = QCheckBox("Debug")
+        self.debug_checkbox.stateChanged.connect(
+            lambda state: self._worker.set_debug_mode(state == Qt.CheckState.Checked.value)
+        )
+
         bottom.addWidget(clear_btn)
         bottom.addWidget(note_label)
+        bottom.addStretch()
+        bottom.addWidget(self.debug_checkbox)
         bottom.addStretch()
         bottom.addWidget(font_size_label)
         bottom.addWidget(self.font_radio_1)
@@ -122,7 +131,7 @@ class MainWindow(QWidget):
         layout.addWidget(self._group_balance())
         layout.addWidget(self._group_payment())
         layout.addStretch()
-        layout.addWidget(self._group_debug())
+        layout.addWidget(self._group_crypto())
 
         return panel
 
@@ -292,17 +301,52 @@ class MainWindow(QWidget):
 
         return grp
 
-    def _group_debug(self) -> QGroupBox:
-        """Debug toggle"""
-        grp = QGroupBox("Debug")
+    def _group_crypto(self) -> QGroupBox:
+        """Crypto – encrypt and decrypt via ESP32"""
+        grp = QGroupBox("Crypto")
         lay = QVBoxLayout(grp)
-        lay.setSpacing(2)
+        lay.setSpacing(6)
 
-        self.debug_checkbox = QCheckBox("Enable verbose logging")
-        self.debug_checkbox.stateChanged.connect(
-            lambda state: self._worker.set_debug_mode(state == Qt.CheckState.Checked.value)
-        )
-        lay.addWidget(self.debug_checkbox)
+        # Buttons row
+        btn_row = QHBoxLayout()
+        btn_row.setSpacing(6)
+
+        self.encrypt_btn = QPushButton("🔐 Encrypt")
+        self.encrypt_btn.setEnabled(False)
+        self.encrypt_btn.clicked.connect(self._on_encrypt)
+
+        self.decrypt_btn = QPushButton("🔓 Decrypt")
+        self.decrypt_btn.setEnabled(False)
+        self.decrypt_btn.clicked.connect(self._on_decrypt)
+
+        btn_row.addWidget(self.encrypt_btn, stretch=1)
+        btn_row.addWidget(self.decrypt_btn, stretch=1)
+        lay.addLayout(btn_row)
+
+        # Input field
+        input_row = QHBoxLayout()
+        input_lbl = QLabel("Input:")
+        input_lbl.setFixedWidth(42)
+        self.crypto_input = QLineEdit()
+        self.crypto_input.setPlaceholderText("text or hex (max 30)")
+        self.crypto_input.setMaxLength(30)
+        self.crypto_input.setFont(QFont("Monospace"))
+        self.crypto_input.setEnabled(False)
+        input_row.addWidget(input_lbl)
+        input_row.addWidget(self.crypto_input)
+        lay.addLayout(input_row)
+
+        # Output label
+        out_row = QHBoxLayout()
+        out_lbl = QLabel("Output:")
+        out_lbl.setFixedWidth(42)
+        self.crypto_output = QLabel("—")
+        self.crypto_output.setFont(QFont("Monospace"))
+        self.crypto_output.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        self.crypto_output.setWordWrap(True)
+        out_row.addWidget(out_lbl)
+        out_row.addWidget(self.crypto_output, stretch=1)
+        lay.addLayout(out_row)
 
         return grp
 
@@ -371,6 +415,11 @@ class MainWindow(QWidget):
         self.value_input.setEnabled(connected)
         self.to_input.setEnabled(connected)
         self.sign_btn.setEnabled(connected)
+
+        # Enable crypto controls when connected
+        self.encrypt_btn.setEnabled(connected)
+        self.decrypt_btn.setEnabled(connected)
+        self.crypto_input.setEnabled(connected)
         
         # Broadcast starts disabled until signature is received
         if not connected:
@@ -526,6 +575,32 @@ class MainWindow(QWidget):
             "broadcast_transaction",
             Qt.ConnectionType.QueuedConnection
         )
+
+    def _on_encrypt(self):
+        """Send text to ESP32 for encryption"""
+        text = self.crypto_input.text().strip()
+        if not text:
+            return
+        self.crypto_output.setText("…")
+        self._worker.encrypt_text(text)
+
+    def _on_decrypt(self):
+        """Send hex to ESP32 for decryption"""
+        hex_str = self.crypto_input.text().strip()
+        if not hex_str:
+            return
+        self.crypto_output.setText("…")
+        self._worker.decrypt_hex(hex_str)
+
+    @pyqtSlot(str)
+    def _on_encrypt_result(self, result: str):
+        """Display encryption result"""
+        self.crypto_output.setText(result)
+
+    @pyqtSlot(str)
+    def _on_decrypt_result(self, result: str):
+        """Display decryption result"""
+        self.crypto_output.setText(result)
 
     # ------------------------------------------------------------------ #
     #  Themes                                                            #
