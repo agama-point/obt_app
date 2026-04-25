@@ -104,10 +104,15 @@ class MainWindow(QWidget):
             lambda state: self._worker.set_debug_mode(state == Qt.CheckState.Checked.value)
         )
 
+        self.led1_checkbox = QCheckBox("L1")
+        self.led1_checkbox.setEnabled(False)
+        self.led1_checkbox.stateChanged.connect(self._on_led1_changed)
+
         bottom.addWidget(clear_btn)
         bottom.addWidget(note_label)
         bottom.addStretch()
         bottom.addWidget(self.debug_checkbox)
+        bottom.addWidget(self.led1_checkbox)
         bottom.addStretch()
         bottom.addWidget(font_size_label)
         bottom.addWidget(self.font_radio_1)
@@ -420,6 +425,11 @@ class MainWindow(QWidget):
         self.encrypt_btn.setEnabled(connected)
         self.decrypt_btn.setEnabled(connected)
         self.crypto_input.setEnabled(connected)
+
+        # Enable LED1 control when connected
+        self.led1_checkbox.setEnabled(connected)
+        if not connected:
+            self.led1_checkbox.setChecked(False)
         
         # Broadcast starts disabled until signature is received
         if not connected:
@@ -575,6 +585,10 @@ class MainWindow(QWidget):
             "broadcast_transaction",
             Qt.ConnectionType.QueuedConnection
         )
+
+    def _on_led1_changed(self, state: int):
+        """Send LED1 on/off command to device"""
+        self._worker.set_led1(state == Qt.CheckState.Checked.value)
 
     def _on_encrypt(self):
         """Send text to ESP32 for encryption"""

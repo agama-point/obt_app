@@ -588,6 +588,21 @@ class WorkerThread(QObject):
         self._debug_mode = enabled
         mode = "ENABLED" if enabled else "DISABLED"
         self._log(f"🐛 Debug mode {mode}", color="#888")
+
+    @pyqtSlot(bool)
+    def set_led1(self, state: bool):
+        """Turn LED1 on or off via UART"""
+        if not self._serial or not self._serial.is_open:
+            return
+        value = "on" if state else "off"
+        try:
+            command = json.dumps({"led1": value}) + "\n"
+            if self._debug_mode:
+                self._log(f"  TX: {command.strip()}", color="#666")
+            self._serial.write(command.encode('utf-8'))
+            self._log(f"💡 LED1 {value.upper()}", color="#888")
+        except Exception as e:
+            self._log(f"❌ LED1 error: {e}", color="#f44336")
     
     def _log(self, message: str, color: str = "#e0e0e0"):
         """Internal helper for logging with timestamp"""
