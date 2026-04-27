@@ -10,6 +10,9 @@ A PyQt6-based desktop application for "secure" blockchain transactions using ext
 
 OBT (OneByte Toy) is a simple blockchain transaction tool that interfaces with hardware wallet devices (ESP32-S3, ESP32-C3, TROPIC01) via UART serial communication. The application allows users to manage cryptocurrency transactions with hardware-level security by keeping private keys isolated on the hardware device.
 
+![OBT_IMG1](img/obt_cp1.png)
+
+
 ### Key Features
 
 ✅ **Hardware Wallet Integration**
@@ -117,6 +120,9 @@ python obt_app.py
 
 
 ![broadcast](/img/obt3broadcast.png)
+
+
+![OBT_IMG2](img/obt_cp2.png)
 
 ---
 
